@@ -1,0 +1,35 @@
+---
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    hostname: traefik
+    env_file:
+      - path: ./.env
+        required: true
+    restart: unless-stopped
+    volumes:
+      - ./traefik:/etc/traefik
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # Add health check
+    healthcheck:
+      test: curl -s --fail http://127.0.0.1:8080/ping
+      interval: 30s
+      retries: 3
+      timeout: 10s
+      start_period: 10s
+    # Very important in order to access the VM
+    network_mode: host
+
+  # A container that exposes an API to show its IP address
+  whoami:
+    image: traefik/whoami
+    container_name: whoami
+    hostname: whoami
+    depends_on:
+      - traefik
+    labels:
+        - "traefik.enable=true"                                       # To enable whoami to Traefik
+        - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)" # Declare the host rule for this service
+        - "traefik.http.routers.whoami.entrypoints=web"               # Declare the EntryPoint
+

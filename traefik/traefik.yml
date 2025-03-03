@@ -1,0 +1,30 @@
+# The /ping health-check URL
+ping: {
+    
+}
+
+# API and dashboard configuration
+api:
+    insecure: true
+
+# Debug log
+log:
+    filePath: /etc/traefik/traefik.log
+    level: DEBUG
+
+# Enable EntryPoints
+entryPoints:
+    web:
+        address: ":80"
+        reusePort: true
+
+# Providers
+providers:
+    # Enable docker provider
+    docker:
+        exposedByDefault: false
+
+    # Enable file provider
+    file:
+        directory: /etc/traefik/dynamic/
+        watch: true

@@ -316,7 +316,7 @@ docker compose down
 
 Create the dynamic directory:
 
-```bash 
+```bash
 mkdir -pv ./traefik/dynamic/
 
 ls -la ./traefik/dynamic/
@@ -334,8 +334,8 @@ docker compose up -d
 To help you understand how traefik works,
 
 ```
-                    HTTP        HTTP                  
-                                                      
+                    HTTP        HTTP
+
 ┌───────────┐      ┌──────┐   ┌──────────┐   ┌───────┐
 │           │      │      │   │          │   │       │
 │EntryPoints│ ───► │Routes│──►│Middleware│──►│Service│
@@ -344,6 +344,8 @@ To help you understand how traefik works,
 ```
 
 We have alredy explained EntryPoints on our previous article, so we are going to focus on routers, middlewares and services.
+
+a better image ![Traefik Architecture](storage/Traefik_Architecture.png)
 
 ### Traefik Services
 
@@ -397,7 +399,7 @@ http:
 
 ## Traefik dynamic configuration
 
-We are ready to pull things together. 
+We are ready to pull things together.
 
 Create a file named transmission yaml under the dynamic configuration directory:
 

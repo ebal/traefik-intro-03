@@ -1,6 +1,6 @@
 # Introduction to Traefik - Part Three
 
-a blog post series to my homelab
+a blog post series about my homelab.
 
 ![Traefik](https://balaskas.gr/blog/fp-content/images/d23d82a2.png)
 
@@ -29,24 +29,24 @@ For the purpose of this article, I created an ubuntu 24.04 LTS running transmiss
 something similar to the below scheme
 
 ```
-                       ┌────┐
-                       │    │
-                       │    │   192.168.122.x:9091
-                       │    │
-    ┌────┐             │    │        ┌───────┐
-    │    │             │    │        │       │
-    │    │  ─────────► │    ├───────►│       │
-  ┌─└────┘─┐           │    │        │       │
-  └────────┘           │    │        └───────┘
-  192.168.1.3          │    │            VM
-                       │    │
-                       │    │        ┌──┐┌──┐
-                       │    ├───────►│  ││  │whoami
-                       └────┘        └──┘└──┘   172.19.0.x
-                                     ┌──┐┌──┐
-                       Traefik       │  ││  │
-                                     └──┘└──┘
-                                      docker
+                       ┌─────┐
+                       │     │
+                       │     │      192.168.122.x:9091
+                       │     │       with Basic Auth
+    ┌────┐             │     │        ┌───────┐
+    │    │             │     │        │       │
+    │    │  ─────────► │     ├───────►│       │
+  ┌─└────┘─┐           │     │        │       │
+  └────────┘           │     │        └───────┘
+  192.168.1.3          │     │           VM
+                       │     │
+                       │     │        ┌──┐┌──┐
+                       │     ├───────►│  ││  │whoami
+                       └─────┘        └──┘└──┘   172.19.0.x
+                                      ┌──┐┌──┐
+                       Traefik        │  ││  │
+                                      └──┘└──┘
+                                       docker
                                      containers
 ```
 
@@ -63,12 +63,11 @@ first add the host network mode:
 ```yaml
     # Very important in order to access the VM
     network_mode: host
-
 ```
 
 and by using **host** we can now remove any port declaration
 
-**remove**:
+`remove`
 
 ```yaml
     ports:
@@ -76,7 +75,6 @@ and by using **host** we can now remove any port declaration
       - 8080:8080
       # The HTTP port
       - 80:80
-
 ```
 
 so our **docker-compose.yml** now looks like:
@@ -89,11 +87,13 @@ services:
     container_name: traefik
     hostname: traefik
     env_file:
-      - path: ./.env
+      - path: ./default.env
         required: true
     restart: unless-stopped
     volumes:
+      # The configuration directory for traefik
       - ./traefik:/etc/traefik
+      # So that Traefik can listen to other Docker Containers
       - /var/run/docker.sock:/var/run/docker.sock:ro
     # Add health check
     healthcheck:
@@ -113,9 +113,12 @@ services:
     depends_on:
       - traefik
     labels:
-        - "traefik.enable=true"                                       # To enable whoami to Traefik
-        - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)" # Declare the host rule for this service
-        - "traefik.http.routers.whoami.entrypoints=web"               # Declare the EntryPoint
+          # To enable whoami to Traefik
+        - "traefik.enable=true"
+          # Declare the host rule for this service
+        - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)"
+          # Declare the EntryPoint
+        - "traefik.http.routers.whoami.entrypoints=web"
 
 ```
 
@@ -154,13 +157,15 @@ X-Forwarded-Server: traefik
 X-Real-Ip: 127.0.0.1
 ```
 
-okay, seems it works are before.
+okay, seems it works as before.
+
+http://whoami.localhost/
 
 ## Transmission
 
 as mentioned above, our transmission application runs on the virtual machine. It is protected by a Basic Authentication setup and listens on a TCP port.
 
-Let's test the connection:
+Let's test the connection for the command line
 
 ```bash
 curl 192.168.122.79:9091
@@ -178,13 +183,13 @@ To add **Basic Auth** to curl is simple:
 curl -u transmission:transmission 192.168.122.79:9091
 ```
 
-now the output is:
+the output is:
 
 ```
 <h1>301: Moved Permanently</h1>
 ```
 
-we can add `-v` to see more details:
+we can add `-v` (verbose) to see more details:
 
 ```bash
 curl -v -u transmission:transmission 192.168.122.79:9091
@@ -217,11 +222,11 @@ full output:
 ```
 
 The **Location** section is interesting: `Location: /transmission/web/`
+we will keep this in mind.
 
 ### Authorization header
 
-by looking very careful the above output, we see that curl uses the Authorization header for Basic Auth.
-This is interesting and we can use this.
+by looking very careful the above output, we see that curl uses the Authorization header for Basic Auth. This is also interesting and we can use this.
 
 Let's try the command:
 
@@ -234,7 +239,9 @@ output:
 ```
 <h1>301: Moved Permanently</h1>
 ```
+
 okay !
+
 So, another way to access transmission is via Authorization header. Curl sends the credentials through base64 encoding, which can be reproduced by
 
 ```bash
@@ -252,9 +259,27 @@ dHJhbnNtaXNzaW9uOnRyYW5zbWlzc2lvbg==
 For the purpose of this lab, we want to access the application on the VM from localhost without providing any credentials, with Traefik handling everything.
 
 ```
-                                    ┌─────────┐
-http://localhost/transmission/ ---> | Traefik | --> VM (IP:PORT + Basic Auth)/transmision/
-                                    └─────────┘
+  http://localhost/transmission          
+                  │                      
+                  │                      
+                  ▼                      
+           ┌──────────────┐              
+           │              │              
+           │   Traefik    │              
+           │      &       │              
+           │  middleware  │              
+           └──────┬───────┘              
+                  │                      
+                  │                      
+                  ▼                      
+                ┌────┐                    
+                │ VM │                    
+                └─┬──┘                    
+              ┌───┴────┐                 
+              └────────┘                 
+  http://(internal IP:PORT)/transmision/ 
+                  + 
+          Authorization header
 ```
 
 To do that, we need to introduce a PathPrefix Rule to Traefik so it redirects every request for `/transmission` to the VM. And what a better place to introduce the file provider on our static Traefik configuration
@@ -272,9 +297,7 @@ so the entire **traefik/traefik.yml** should look like:
 
 ```yaml
 # The /ping health-check URL
-ping: {
-
-}
+ping:
 
 # API and dashboard configuration
 api:
@@ -318,9 +341,7 @@ Create the dynamic directory:
 
 ```bash
 mkdir -pv ./traefik/dynamic/
-
-ls -la ./traefik/dynamic/
-
+ls    -la ./traefik/dynamic/
 ```
 
 and
@@ -334,8 +355,7 @@ docker compose up -d
 To help you understand how traefik works,
 
 ```
-                    HTTP        HTTP
-
+                     HTTP
 ┌───────────┐      ┌──────┐   ┌──────────┐   ┌───────┐
 │           │      │      │   │          │   │       │
 │EntryPoints│ ───► │Routes│──►│Middleware│──►│Service│
@@ -388,13 +408,12 @@ eg.
 ```yaml
 http:
   routers:
-    <router-name>>:
+    <router-name>:
       entryPoints: web
       service: <service-name>
       rule: PathPrefix(`/transmission`)
       middlewares:
-        - <middleware-name>>
-
+        - <middleware-name>
 ```
 
 ## Traefik dynamic configuration
@@ -446,11 +465,13 @@ output:
 <h1>301: Moved Permanently</h1>
 ```
 
-from dashboard
+traefik dashboard
 
 ![Traefik_transmission](storage/Traefik_transmission.png)
 
 from browser
+
+http://localhost/transmission/
 
 ![Transmission](storage/Transmission.png)
 
@@ -458,5 +479,4 @@ That's It !
 
 ```bash
 docker compose down
-
 ```

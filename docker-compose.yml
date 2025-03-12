@@ -5,11 +5,13 @@ services:
     container_name: traefik
     hostname: traefik
     env_file:
-      - path: ./.env
+      - path: ./default.env
         required: true
     restart: unless-stopped
     volumes:
+      # The configuration directory for traefik
       - ./traefik:/etc/traefik
+      # So that Traefik can listen to other Docker Containers
       - /var/run/docker.sock:/var/run/docker.sock:ro
     # Add health check
     healthcheck:
@@ -29,7 +31,7 @@ services:
     depends_on:
       - traefik
     labels:
-        - "traefik.enable=true"                                       # To enable whoami to Traefik
-        - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)" # Declare the host rule for this service
-        - "traefik.http.routers.whoami.entrypoints=web"               # Declare the EntryPoint
+        - traefik.enable=true                                       # To enable whoami to Traefik
+        - traefik.http.routers.whoami.rule=Host(`whoami.localhost`) # Declare the host rule for this service
+        - traefik.http.routers.whoami.entrypoints=web               # Declare the EntryPoint
 

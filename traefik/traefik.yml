@@ -1,7 +1,5 @@
 # The /ping health-check URL
-ping: {
-    
-}
+ping:
 
 # API and dashboard configuration
 api:
@@ -28,3 +26,4 @@ providers:
     file:
         directory: /etc/traefik/dynamic/
         watch: true
+

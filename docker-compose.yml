@@ -15,7 +15,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     # Add health check
     healthcheck:
-      test: curl -s --fail http://127.0.0.1:8080/ping
+      test: ["CMD", "traefik", "healthcheck"]
       interval: 30s
       retries: 3
       timeout: 10s
@@ -29,7 +29,8 @@ services:
     container_name: whoami
     hostname: whoami
     depends_on:
-      - traefik
+      traefik:
+        condition: service_healthy # Wait for Traefik to be healthy
     labels:
         - traefik.enable=true                                       # To enable whoami to Traefik
         - traefik.http.routers.whoami.rule=Host(`whoami.localhost`) # Declare the host rule for this service

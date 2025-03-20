@@ -5,6 +5,7 @@ a blog post series about my homelab.
 ![Traefik](https://balaskas.gr/blog/fp-content/images/d23d82a2.png)
 
 check here for [Introduction to Traefik - Part Two](https://github.com/ebal/traefik-intro-02)
+check here for [Introduction to Traefik - Part Four](https://github.com/ebal/traefik-intro-04)
 
 ## Part Three
 
@@ -97,7 +98,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     # Add health check
     healthcheck:
-      test: curl -s --fail http://127.0.0.1:8080/ping
+       test: ["CMD", "traefik", "healthcheck"]
       interval: 30s
       retries: 3
       timeout: 10s
@@ -111,7 +112,8 @@ services:
     container_name: whoami
     hostname: whoami
     depends_on:
-      - traefik
+      traefik:
+        condition: service_healthy # Wait for Traefik to be healthy
     labels:
           # To enable whoami to Traefik
         - "traefik.enable=true"
@@ -259,26 +261,26 @@ dHJhbnNtaXNzaW9uOnRyYW5zbWlzc2lvbg==
 For the purpose of this lab, we want to access the application on the VM from localhost without providing any credentials, with Traefik handling everything.
 
 ```
-  http://localhost/transmission          
-                  │                      
-                  │                      
-                  ▼                      
-           ┌──────────────┐              
-           │              │              
-           │   Traefik    │              
-           │      &       │              
-           │  middleware  │              
-           └──────┬───────┘              
-                  │                      
-                  │                      
-                  ▼                      
-                ┌────┐                    
-                │ VM │                    
-                └─┬──┘                    
-              ┌───┴────┐                 
-              └────────┘                 
-  http://(internal IP:PORT)/transmision/ 
-                  + 
+  http://localhost/transmission
+                  │
+                  │
+                  ▼
+           ┌──────────────┐
+           │              │
+           │   Traefik    │
+           │      &       │
+           │  middleware  │
+           └──────┬───────┘
+                  │
+                  │
+                  ▼
+                ┌────┐
+                │ VM │
+                └─┬──┘
+              ┌───┴────┐
+              └────────┘
+  http://(internal IP:PORT)/transmision/
+                  +
           Authorization header
 ```
 
